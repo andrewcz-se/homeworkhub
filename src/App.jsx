@@ -32,7 +32,7 @@ const SUBJECT_COLORS = {
   'Science': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   'Design': 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
   'PE': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-  'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+  'Spanish': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
 };
 
 const SUBJECT_CALENDAR_COLORS = {
@@ -45,7 +45,7 @@ const SUBJECT_CALENDAR_COLORS = {
   'Science': 'bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-200',
   'Design': 'bg-teal-50 text-teal-700 dark:bg-teal-900 dark:text-teal-200',
   'PE': 'bg-orange-50 text-orange-700 dark:bg-orange-900 dark:text-orange-200',
-  'Other': 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300' // Corrected typo here
+  'Spanish': 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300' // Corrected typo here
 };
 
 const SUBJECT_OPTIONS = Object.keys(SUBJECT_COLORS);

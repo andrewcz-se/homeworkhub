@@ -14,6 +14,7 @@ It uses the browser's **localStorage** to save all the tasks, allowing you to cr
 * **Smart List Views:** Toggle between "Calendar," "Upcoming" (incomplete tasks), and "All Tasks."  
 * **Interactive Dashboard:** "At a Glance" cards show you tasks due "Today" and "This Week." Clicking a card filters the upcoming list.  
 * **Print Support:** A "Print" button for the Calendar and Upcoming views, formatted to be clean and ink-friendly.
+* **Calendar Support:** Add homework tasks to your Google or Outlook calendar from the Upcoming and All Tasks views.
 
 ## **Getting Started (Running Locally)**
 

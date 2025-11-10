@@ -330,7 +330,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       {filteredTasks.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          No homework found for this view.
+          No homework found, lucky you..
         </p>
       ) : (
         <div className="space-y-3">
@@ -530,7 +530,7 @@ const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, 
           <NavButton targetView="all" icon={List} label="All Tasks" />
           
           {/* Print Button */}
-          {(view === 'calendar' || view === 'upcoming') && (
+          {(view === 'calendar' || view === 'upcoming' || view === 'all') && (
             <button
               onClick={onPrint}
               className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-300 hover:bg-gray-700 hover:text-white"

@@ -17,8 +17,10 @@ import {
   Clock,
   CalendarDays,
   Book,
-  Sun, // Added Sun icon
-  Moon, // Added Moon icon
+  Sun,
+  Moon,
+  CalendarPlus,
+  CalendarPlus2, // Added new icon for Outlook
 } from 'lucide-react'; // Using lucide-react for icons
 
 // --- Subject Color Definitions ---
@@ -45,7 +47,7 @@ const SUBJECT_CALENDAR_COLORS = {
   'Science': 'bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-200',
   'Design': 'bg-teal-50 text-teal-700 dark:bg-teal-900 dark:text-teal-200',
   'PE': 'bg-orange-50 text-orange-700 dark:bg-orange-900 dark:text-orange-200',
-  'Spanish': 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300' // Corrected typo here
+  'Spanish': 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
 };
 
 const SUBJECT_OPTIONS = Object.keys(SUBJECT_COLORS);
@@ -106,7 +108,7 @@ const generateId = () => {
  * TaskItem Component
  * Renders a single task in a list view
  */
-const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal }) => {
+const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook }) => {
   const isOverdue = !task.completed && new Date(task.dueDate) < new Date(getTodayISO());
 
   return (
@@ -152,6 +154,20 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal }) => {
         </div>
       </div>
       <div className="flex items-center space-x-2">
+        <button
+          onClick={() => onAddToGoogle(task)}
+          className="text-gray-400 hover:text-green-500 transition-colors"
+          aria-label="Add to Google Calendar"
+        >
+          <CalendarPlus className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => onAddToOutlook(task)}
+          className="text-gray-400 hover:text-blue-500 transition-colors"
+          aria-label="Add to Outlook Calendar"
+        >
+          <CalendarPlus2 className="w-5 h-5" />
+        </button>
         <button
           onClick={() => onOpenEditModal(task)}
           className="text-gray-400 hover:text-blue-500 transition-colors"
@@ -271,7 +287,7 @@ const HomeworkForm = ({ onAddTask }) => {
  * TaskLists Component
  * Displays either "Upcoming" or "All" tasks
  */
-const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, upcomingFilter }) => {
+const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook, upcomingFilter }) => {
   
   const todayISO = getTodayISO();
   const sevenDaysFromNow = new Date();
@@ -314,7 +330,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, u
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       {filteredTasks.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          No homework found that's due today. Lucky you..
+          No homework found for this view.
         </p>
       ) : (
         <div className="space-y-3">
@@ -324,7 +340,9 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, u
               task={task}
               onToggleComplete={onToggleComplete}
               onDelete={onDelete}
-              onOpenEditModal={onOpenEditModal} // Pass prop
+              onOpenEditModal={onOpenEditModal}
+              onAddToGoogle={onAddToGoogle} // Renamed prop
+              onAddToOutlook={onAddToOutlook} // Added new prop
             />
           ))}
         </div>
@@ -571,7 +589,7 @@ const LoginScreen = ({ onLogin }) => {
       <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none text-center">
         <Users className="w-16 h-16 mx-auto text-blue-600" />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Welcome to Homework Hub</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2 mb-6">Enter a username to manage your homework tasks. Each user has their own list, linked to their login name. Don't forget the login name you used to login!</p>
+        <p className="text-gray-600 dark:text-gray-300 mt-2 mb-6">Enter a username to manage your tasks. Each user has their own list.</p>
         <form onSubmit={handleSubmit}>
           <label htmlFor="username" className="sr-only">
             Username
@@ -896,6 +914,59 @@ export default function App() {
     handleCloseEditModal(); // Close the modal after saving
   };
 
+  // --- "Add to Calendar" Handlers ---
+  
+  // Renamed from handleAddToCalendar
+  const handleAddToGoogle = (task) => {
+    // 1. Format the dates.
+    // Google Calendar wants YYYYMMDD format without dashes.
+    const startDate = task.dueDate.replace(/-/g, '');
+    
+    // For an all-day event, the "end" date is the *next day*.
+    const endDateObj = new Date(task.dueDate);
+    endDateObj.setUTCDate(endDateObj.getUTCDate() + 1); // Use UTC to avoid timezone issues
+    const endDate = toLocalDateISOString(endDateObj).replace(/-/g, '');
+
+    // 2. Create the URL.
+    const baseUrl = 'https://www.google.com/calendar/render?action=TEMPLATE';
+    const params = new URLSearchParams();
+    params.append('text', task.taskName);
+    params.append('dates', `${startDate}/${endDate}`); // Format: YYYYMMDD/YYYYMMDD
+    params.append('details', `Homework for: ${task.subject}`);
+
+    const url = `${baseUrl}&${params.toString()}`;
+
+    // 3. Open in a new tab.
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  // New handler for Outlook
+  const handleAddToOutlook = (task) => {
+    // 1. Format the dates.
+    // Outlook wants ISO 8601 format (YYYY-MM-DDTHH:mm:ss)
+    // We must use UTC for this to work correctly across timezones
+    const startDate = `${task.dueDate}T00:00:00`;
+    
+    // For an all-day event, the "end" date is the *next day*.
+    const endDateObj = new Date(task.dueDate);
+    endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+    const endDate = `${toLocalDateISOString(endDateObj)}T00:00:00`;
+
+    // 2. Create the URL.
+    const baseUrl = 'https://outlook.live.com/calendar/0/deeplink/compose';
+    const params = new URLSearchParams();
+    params.append('subject', task.taskName);
+    params.append('body', `Homework for: ${task.subject}`);
+    params.append('startdt', startDate);
+    params.append('enddt', endDate);
+    params.append('allday', 'true');
+
+    const url = `${baseUrl}?${params.toString()}`;
+
+    // 3. Open in a new tab.
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   // --- Filter/Print Handlers ---
   const handlePrint = () => {
     window.print(); // The browser will use the print: styles
@@ -940,6 +1011,8 @@ export default function App() {
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
           onOpenEditModal={handleOpenEditModal}
+          onAddToGoogle={handleAddToGoogle} // Pass renamed handler
+          onAddToOutlook={handleAddToOutlook} // Pass new handler
           upcomingFilter={upcomingFilter}
         />
       </>
@@ -962,8 +1035,8 @@ export default function App() {
           setTheme={setTheme} // Pass setter
         />
         
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-gray-100 dark:bg-gray-900">
-          <div className="lg-col-span-1 print:hidden">
+        <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 print:hidden">
             <HomeworkForm onAddTask={handleAddTask} />
           </div>
           <div className="lg:col-span-2 print:col-span-3">

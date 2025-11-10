@@ -20,7 +20,8 @@ import {
   Sun,
   Moon,
   CalendarPlus,
-  CalendarPlus2, // Added new icon for Outlook
+  CalendarPlus2,
+  AlertTriangle, // Added Overdue icon
 } from 'lucide-react'; // Using lucide-react for icons
 
 // --- Subject Color Definitions ---
@@ -302,8 +303,10 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
       tasksToFilter = tasksToFilter.filter((task) => !task.completed);
     }
 
-    // 2. Filter based on dashboard selection ('today' or 'week')
-    if (view === 'upcoming' && upcomingFilter === 'today') {
+    // 2. Filter based on dashboard selection ('overdue', 'today', or 'week')
+    if (view === 'upcoming' && upcomingFilter === 'overdue') {
+      tasksToFilter = tasksToFilter.filter((task) => task.dueDate < todayISO);
+    } else if (view === 'upcoming' && upcomingFilter === 'today') {
       tasksToFilter = tasksToFilter.filter((task) => task.dueDate === todayISO);
     } else if (view === 'upcoming' && upcomingFilter === 'week') {
       tasksToFilter = tasksToFilter.filter((task) => 
@@ -312,12 +315,14 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
     }
 
     // 3. Sort the final list
+    // If overdue, we want to see the oldest first, which is the default sort.
     return tasksToFilter.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
   }, [tasks, view, upcomingFilter, todayISO, sevenDaysFromNowISO]);
 
   // Determine the title based on the filters
   const getTitle = () => {
+    if (upcomingFilter === 'overdue') return 'Overdue Tasks'; // Added this
     if (upcomingFilter === 'today') return 'Tasks Due Today';
     if (upcomingFilter === 'week') return 'Tasks Due This Week';
     if (view === 'upcoming') return 'Upcoming Homework';
@@ -330,7 +335,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
       {filteredTasks.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          No homework found, lucky you..
+          No homework found for this view.
         </p>
       ) : (
         <div className="space-y-3">
@@ -341,8 +346,8 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
               onToggleComplete={onToggleComplete}
               onDelete={onDelete}
               onOpenEditModal={onOpenEditModal}
-              onAddToGoogle={onAddToGoogle} // Renamed prop
-              onAddToOutlook={onAddToOutlook} // Added new prop
+              onAddToGoogle={onAddToGoogle}
+              onAddToOutlook={onAddToOutlook}
             />
           ))}
         </div>
@@ -758,7 +763,7 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
   const sevenDaysFromNowISO = toLocalDateISOString(sevenDaysFromNow);
 
-  const { tasksDueToday, tasksDueThisWeek } = useMemo(() => {
+  const { tasksDueToday, tasksDueThisWeek, tasksOverdue } = useMemo(() => {
     const incompleteTasks = tasks.filter(task => !task.completed);
     
     const today = incompleteTasks.filter(task => task.dueDate === todayISO).length;
@@ -766,12 +771,30 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
     const week = incompleteTasks.filter(task => 
       task.dueDate >= todayISO && task.dueDate <= sevenDaysFromNowISO
     ).length;
+    
+    const overdue = incompleteTasks.filter(task => task.dueDate < todayISO).length; // Added this calculation
 
-    return { tasksDueToday: today, tasksDueThisWeek: week };
+    return { tasksDueToday: today, tasksDueThisWeek: week, tasksOverdue: overdue }; // Added to return
   }, [tasks, todayISO, sevenDaysFromNowISO]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:hidden">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 print:hidden"> {/* Updated grid to 3 cols */}
+      {/* Stat Card: Overdue */}
+      <button
+        onClick={() => setUpcomingFilter('overdue')}
+        className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md dark:shadow-none flex items-center space-x-3 text-left w-full transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+      >
+        <div className="flex-shrink-0 bg-red-100 dark:bg-red-900 p-3 rounded-full">
+          <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-200" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Overdue</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {tasksOverdue} {tasksOverdue === 1 ? 'Task' : 'Tasks'}
+          </p>
+        </div>
+      </button>
+
       {/* Stat Card: Due Today */}
       <button
         onClick={() => setUpcomingFilter('today')}
@@ -817,7 +840,7 @@ export default function App() {
   const [view, setView] = useState('calendar'); // 'calendar', 'upcoming', 'all'
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [upcomingFilter, setUpcomingFilter] = useState('all'); // 'all', 'today', 'week'
+  const [upcomingFilter, setUpcomingFilter] = useState('all'); // 'all', 'today', 'week', 'overdue'
   const [theme, setTheme] = useTheme(); // Use the new theme hook
 
   // Create a dynamic localStorage key based on the user
@@ -1011,8 +1034,8 @@ export default function App() {
           onToggleComplete={handleToggleComplete}
           onDelete={handleDeleteTask}
           onOpenEditModal={handleOpenEditModal}
-          onAddToGoogle={handleAddToGoogle} // Pass renamed handler
-          onAddToOutlook={handleAddToOutlook} // Pass new handler
+          onAddToGoogle={handleAddToGoogle}
+          onAddToOutlook={handleAddToOutlook}
           upcomingFilter={upcomingFilter}
         />
       </>

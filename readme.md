@@ -1,13 +1,13 @@
 # **Homework Hub**
 
-Homework Hub is a clean and simple task management app built for students. It's built with **React** and **Vite**, and styled with **Tailwind CSS**. The purpospe of this project was to get some basic React experience and learn how to publish a React app to the web, whilst providing something useful for my kids.
+Homework Hub is a simple task management app built for students, so they can record and manage upcoming homework tasks. It's built with **React** and **Vite**, and styled with **Tailwind CSS**. The purpose of this project was to get some basic React experience and learn how to publish a React app to the web, whilst providing something useful for my kids to plan their homework.
 
-It uses the browser's **localStorage** to save all the tasks, allowing you to create different user profiles on the same computer, each with its own separate homework list. I am investigating moving to Firebase for storage.
+This project has been upgraded from a simple localStorage app to a cloud-based application using Firebase. It now features secure email/password authentication using the *createUserWithEmailAndPassword* and *signInWithEmailAndPassword* functions and a Cloud Firestore database, allowing users to securely access their homework lists from any device.
 
 ## **Features**
 
-* **User Profiles:** Simple username login to keep task lists separate. This is just to seperate profiles so multiple people can use the app on the same device, it is **not** a secure login function.  
-* **Persistent Storage:** All tasks are saved to localStorage, so the list is there when you return.  
+* **Secure User Accounts:** Replaced the original profile system with full Firebase Email/Password Authentication. Users can sign up and log in securely.
+* **Cloud Firestore Sync:** All tasks are now saved to a secure Firestore database, not localStorage. Data is synced across all devices in real-time.  
 * **Add/Edit/Delete Tasks:** Full CRUD (Create, Read, Update, Delete) functionality for the homework entries.  
 * **Subject Dropdowns:** Pre-set list of subjects (Maths, Science, Art, etc.) for easy entry.  
 * **Color-Coded Calendar:** A full monthly calendar that displays tasks on their due dates, with colors for each subject.  

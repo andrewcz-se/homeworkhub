@@ -21,10 +21,44 @@ import {
   Moon,
   CalendarPlus,
   CalendarPlus2,
-  AlertTriangle, // Added Overdue icon
+  AlertTriangle,
+  Lock, // For password
+  Mail, // For email
 } from 'lucide-react'; // Using lucide-react for icons
 
-// --- Subject Color Definitions ---
+// Import Firebase
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  setLogLevel,
+} from 'firebase/firestore';
+
+// --- Firebase Configuration (FOR VERCEL) ---
+// PASTE YOUR KEYS HERE
+// You get this object from your Firebase project settings
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
+};
+
+// --- Subject Color Definitions (Unchanged) ---
 const SUBJECT_COLORS = {
   'Maths': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   'Swedish': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -54,16 +88,12 @@ const SUBJECT_CALENDAR_COLORS = {
 const SUBJECT_OPTIONS = Object.keys(SUBJECT_COLORS);
 
 
-// --- Custom Hook for Theme ---
+// --- Custom Hook for Theme (Unchanged) ---
 const useTheme = () => {
-  // Default to 'light' to avoid flash, but check localStorage/OS immediately
   const [theme, setTheme] = useState('light');
-
-  // On initial load: Check localStorage or OS preference
   useEffect(() => {
     const savedTheme = localStorage.getItem('homework-hub-theme');
     const osPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
     if (savedTheme) {
       setTheme(savedTheme);
     } else if (osPrefersDark) {
@@ -71,9 +101,7 @@ const useTheme = () => {
     } else {
       setTheme('light');
     }
-  }, []); // Empty array = run once on load
-
-  // On theme change: Update <html> class and localStorage
+  }, []);
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -82,13 +110,12 @@ const useTheme = () => {
       root.classList.remove('dark');
     }
     localStorage.setItem('homework-hub-theme', theme);
-  }, [theme]); // Run whenever 'theme' changes
-
+  }, [theme]);
   return [theme, setTheme];
 };
 
 
-// --- Helper Functions ---
+// --- Helper Functions (Unchanged) ---
 const toLocalDateISOString = (date) => {
   const offset = date.getTimezoneOffset();
   const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
@@ -99,14 +126,10 @@ const getTodayISO = () => {
   return toLocalDateISOString(new Date());
 };
 
-const generateId = () => {
-  return crypto.randomUUID();
-};
-
 // --- React Components ---
 
 /**
- * TaskItem Component
+ * TaskItem Component (Unchanged)
  * Renders a single task in a list view
  */
 const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook }) => {
@@ -189,12 +212,12 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGo
 };
 
 /**
- * HomeworkForm Component
+ * HomeworkForm Component (Unchanged)
  * A form for adding new homework tasks
  */
 const HomeworkForm = ({ onAddTask }) => {
   const [taskName, setTaskName] = useState('');
-  const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]); // Default to the first subject
+  const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
   const [dueDate, setDueDate] = useState(getTodayISO());
 
   const handleSubmit = (e) => {
@@ -205,17 +228,16 @@ const HomeworkForm = ({ onAddTask }) => {
     }
 
     onAddTask({
-      id: generateId(),
       taskName: taskName.trim(),
       subject: subject.trim(),
-      dueDate, // Already in YYYY-MM-DD format
+      dueDate,
       completed: false,
       createdAt: new Date().toISOString(),
+      // 'profile' field is no longer needed
     });
 
-    // Reset form
     setTaskName('');
-    setSubject(SUBJECT_OPTIONS[0]); // Reset to the first subject
+    setSubject(SUBJECT_OPTIONS[0]);
     setDueDate(getTodayISO());
   };
 
@@ -285,7 +307,7 @@ const HomeworkForm = ({ onAddTask }) => {
 };
 
 /**
- * TaskLists Component
+ * TaskLists Component (Unchanged)
  * Displays either "Upcoming" or "All" tasks
  */
 const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook, upcomingFilter }) => {
@@ -298,12 +320,10 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
   const filteredTasks = useMemo(() => {
     let tasksToFilter = [...tasks];
 
-    // 1. Filter based on main view ('upcoming' or 'all')
     if (view === 'upcoming') {
       tasksToFilter = tasksToFilter.filter((task) => !task.completed);
     }
 
-    // 2. Filter based on dashboard selection ('overdue', 'today', or 'week')
     if (view === 'upcoming' && upcomingFilter === 'overdue') {
       tasksToFilter = tasksToFilter.filter((task) => task.dueDate < todayISO);
     } else if (view === 'upcoming' && upcomingFilter === 'today') {
@@ -314,15 +334,12 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
       );
     }
 
-    // 3. Sort the final list
-    // If overdue, we want to see the oldest first, which is the default sort.
     return tasksToFilter.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
   }, [tasks, view, upcomingFilter, todayISO, sevenDaysFromNowISO]);
 
-  // Determine the title based on the filters
   const getTitle = () => {
-    if (upcomingFilter === 'overdue') return 'Overdue Tasks'; // Added this
+    if (upcomingFilter === 'overdue') return 'Overdue Tasks';
     if (upcomingFilter === 'today') return 'Tasks Due Today';
     if (upcomingFilter === 'week') return 'Tasks Due This Week';
     if (view === 'upcoming') return 'Upcoming Homework';
@@ -357,7 +374,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
 };
 
 /**
- * CalendarView Component
+ * CalendarView Component (Unchanged)
  * Renders a monthly calendar with tasks
  */
 const CalendarView = ({ tasks, onToggleComplete }) => {
@@ -365,7 +382,7 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
 
   const tasksByDate = useMemo(() => {
     return tasks.reduce((acc, task) => {
-      const date = task.dueDate; // Tasks are stored as 'YYYY-MM-DD'
+      const date = task.dueDate;
       if (!acc[date]) {
         acc[date] = [];
       }
@@ -390,12 +407,9 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
 
   const renderDays = () => {
     const days = [];
-    // Padding for days before the 1st
     for (let i = 0; i < firstDayOfMonth; i++) {
       days.push(<div key={`pad-start-${i}`} className="border-r border-b border-gray-200 dark:border-gray-700 print:border-gray-400"></div>);
     }
-
-    // Actual days
     for (let day = 1; day <= daysInMonth; day++) {
       const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const dateStr = toLocalDateISOString(dateObj);
@@ -452,7 +466,6 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-none overflow-hidden print:shadow-none print:overflow-visible">
-      {/* Calendar Header - For Screen */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 print:hidden">
         <button
           onClick={prevMonth}
@@ -472,13 +485,9 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
-
-      {/* Calendar Header - For Print Only */}
       <div className="hidden print:block text-center p-4 border-b border-gray-400">
         <h2 className="text-xl font-semibold text-black">{monthName}</h2>
       </div>
-      
-      {/* Calendar Grid */}
       <div className="grid grid-cols-7">
         {dayNames.map(day => (
           <div key={day} className="p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 border-b border-r border-gray-200 dark:border-gray-700 print:border-gray-400 print:text-black">
@@ -494,14 +503,14 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
 };
 
 /**
- * Header Component
- * Displays navigation and user info
+ * Header Component (Updated)
+ * Now shows the user's email and a true "Log Out" button.
  */
-const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, theme, setTheme }) => {
+const Header = ({ userEmail, view, setView, onLogout, onPrint, onClearFilter, theme, setTheme }) => {
   
   const handleSetView = (targetView) => {
     setView(targetView);
-    onClearFilter(); // Clear any sub-filters when changing main view
+    onClearFilter();
   };
 
   const NavButton = ({ targetView, icon: Icon, label }) => (
@@ -534,7 +543,6 @@ const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, 
           <NavButton targetView="upcoming" icon={List} label="Upcoming" />
           <NavButton targetView="all" icon={List} label="All Tasks" />
           
-          {/* Print Button */}
           {(view === 'calendar' || view === 'upcoming' || view === 'all') && (
             <button
               onClick={onPrint}
@@ -545,7 +553,6 @@ const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, 
             </button>
           )}
 
-          {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
             className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-300 hover:bg-gray-700 hover:text-white"
@@ -561,14 +568,14 @@ const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, 
       </div>
       <div className="text-sm text-gray-300 mt-2 flex items-center justify-center md:justify-end">
         <User className="w-4 h-4 mr-2" />
-        <span>Logged in as: <strong className="font-medium text-white">{currentUser}</strong></span>
+        <span className="font-medium text-white">{userEmail}</span>
         <button
           onClick={onLogout}
           className="ml-4 flex items-center text-gray-300 hover:text-white transition-colors"
-          title="Switch user"
+          title="Log Out"
         >
           <LogOut className="w-4 h-4 mr-1" />
-          Logout
+          Log Out
         </button>
       </div>
     </header>
@@ -576,16 +583,55 @@ const Header = ({ currentUser, view, setView, onLogout, onPrint, onClearFilter, 
 };
 
 /**
- * LoginScreen Component
- * A simple form to "log in" by just entering a name.
+ * LoginScreen Component (New)
+ * Handles both Sign Up and Log In with Email/Password.
  */
-const LoginScreen = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+const LoginScreen = ({ auth, authError, setAuthError }) => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  // Cleans up Firebase's error messages
+  const cleanFirebaseError = (message) => {
+    if (message.includes('auth/wrong-password')) {
+      return 'Incorrect email or password. Please try again.';
+    }
+    if (message.includes('auth/user-not-found')) {
+      return 'Incorrect email or password. Please try again.';
+    }
+    if (message.includes('auth/email-already-in-use')) {
+      return 'That email address is already in use by another account.';
+    }
+    if (message.includes('auth/weak-password')) {
+      return 'Password is too weak. Must be at least 6 characters.';
+    }
+    if (message.includes('auth/invalid-email')) {
+      return 'Please enter a valid email address.';
+    }
+    return 'Unable to login or sign-up, please check your details and try again.';
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username.trim());
+    setAuthError(null); // Clear previous errors
+
+    if (!email.trim() || !password.trim()) {
+      setAuthError("Please enter both an email and password.");
+      return;
+    }
+
+    try {
+      if (isSignUp) {
+        // --- SIGN UP ---
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        // --- LOG IN ---
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+      // onAuthStateChanged in App.jsx will handle success
+    } catch (error) {
+      console.error("Firebase auth error:", error.code, error.message);
+      setAuthError(cleanFirebaseError(error.message));
     }
   };
 
@@ -594,28 +640,66 @@ const LoginScreen = ({ onLogin }) => {
       <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none text-center">
         <Users className="w-16 h-16 mx-auto text-blue-600" />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Welcome to Homework Hub</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2 mb-6">Enter a username to manage your tasks. Each user has their own list.</p>
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="username" className="sr-only">
-            Username
-          </label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
-            placeholder="e.g., Alice, Bob, or 'Family'"
-            required
-          />
+        <p className="text-gray-600 dark:text-gray-300 mt-2 mb-6">
+          {isSignUp ? 'Create an account to save your tasks.' : 'Log in to see your tasks.'}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="sr-only">
+              Email
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                placeholder="e.g., alice@example.com"
+                required
+              />
+              <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="password" className="sr-only">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full px-4 py-3 pl-10 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+                placeholder="Password (min. 6 characters)"
+                required
+              />
+              <Lock className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          {authError && (
+            <p className="text-red-500 text-sm text-left">{authError}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-4"
+            className="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <User className="w-5 h-5 mr-2" />
-            Login / Continue
+            {isSignUp ? 'Sign Up' : 'Log In'}
           </button>
         </form>
+
+        <button
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            setAuthError(null); // Clear errors when toggling
+          }}
+          className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
+        </button>
       </div>
     </div>
   );
@@ -623,7 +707,7 @@ const LoginScreen = ({ onLogin }) => {
 
 
 /**
- * EditTaskModal Component
+ * EditTaskModal Component (Unchanged)
  * A modal form for editing an existing task
  */
 const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
@@ -631,8 +715,6 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
   const [subject, setSubject] = useState('');
   const [dueDate, setDueDate] = useState('');
 
-  // When the `task` prop changes (i.e., when the modal is opened),
-  // populate the form fields with the task's data.
   useEffect(() => {
     if (task) {
       setTaskName(task.taskName);
@@ -649,7 +731,7 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
     }
 
     onSave({
-      ...task, // Keep the original ID, completed status, etc.
+      ...task, // Keep original ID, completed status, etc.
       taskName: taskName.trim(),
       subject: subject.trim(),
       dueDate,
@@ -661,15 +743,13 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
   }
 
   return (
-    // Modal Backdrop
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden"
       onClick={onClose}
     >
-      {/* Modal Content */}
       <div 
         className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
@@ -678,8 +758,6 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
         >
           <X className="w-6 h-6" />
         </button>
-        
-        {/* Re-using the HomeworkForm structure, but for editing */}
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
@@ -754,7 +832,7 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
 };
 
 /**
- * Dashboard Component
+ * Dashboard Component (Unchanged)
  * Shows "At a Glance" stats
  */
 const Dashboard = ({ tasks, setUpcomingFilter }) => {
@@ -772,14 +850,13 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
       task.dueDate >= todayISO && task.dueDate <= sevenDaysFromNowISO
     ).length;
     
-    const overdue = incompleteTasks.filter(task => task.dueDate < todayISO).length; // Added this calculation
+    const overdue = incompleteTasks.filter(task => task.dueDate < todayISO).length;
 
-    return { tasksDueToday: today, tasksDueThisWeek: week, tasksOverdue: overdue }; // Added to return
+    return { tasksDueToday: today, tasksDueThisWeek: week, tasksOverdue: overdue };
   }, [tasks, todayISO, sevenDaysFromNowISO]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 print:hidden"> {/* Updated grid to 3 cols */}
-      {/* Stat Card: Overdue */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 print:hidden">
       <button
         onClick={() => setUpcomingFilter('overdue')}
         className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md dark:shadow-none flex items-center space-x-3 text-left w-full transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
@@ -795,7 +872,6 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
         </div>
       </button>
 
-      {/* Stat Card: Due Today */}
       <button
         onClick={() => setUpcomingFilter('today')}
         className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md dark:shadow-none flex items-center space-x-3 text-left w-full transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
@@ -811,7 +887,6 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
         </div>
       </button>
       
-      {/* Stat Card: Due This Week */}
       <button
         onClick={() => setUpcomingFilter('week')}
         className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md dark:shadow-none flex items-center space-x-3 text-left w-full transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
@@ -832,91 +907,139 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
 
 
 /**
- * Main App Component
+ * Main App Component (Updated for Email/Password Auth)
  */
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [view, setView] = useState('calendar'); // 'calendar', 'upcoming', 'all'
+  // Firebase state
+  const [db, setDb] = useState(null);
+  const [auth, setAuth] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [authError, setAuthError] = useState(null);
+
+  // App state
+  const [tasks, setTasks] = useState([]); // All tasks for the logged-in user
+  const [view, setView] = useState('calendar');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [upcomingFilter, setUpcomingFilter] = useState('all'); // 'all', 'today', 'week', 'overdue'
-  const [theme, setTheme] = useTheme(); // Use the new theme hook
-
-  // Create a dynamic localStorage key based on the user
-  const getStorageKey = (user) => `homework-hub-tasks-${user}`;
-
-  // 1. Load the current user from localStorage on initial render
+  const [upcomingFilter, setUpcomingFilter] = useState('all');
+  const [theme, setTheme] = useTheme();
+  
+  // --- Firebase Initialization and Auth ---
   useEffect(() => {
-    const savedUser = localStorage.getItem('homework-hub-currentUser');
-    if (savedUser) {
-      setCurrentUser(savedUser);
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId || firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+      console.error("Firebase config is missing! Ensure you've pasted your keys into app.jsx.");
+      setAuthError("Firebase config is missing. App cannot load. Please paste your keys from the Firebase console into the firebaseConfig object in app.jsx.");
+      setIsAuthReady(true); // Set to true to stop loading screen
+      return;
+    }
+    try {
+      const app = initializeApp(firebaseConfig);
+      const authInstance = getAuth(app);
+      const dbInstance = getFirestore(app);
+      setLogLevel('Debug');
+      setDb(dbInstance);
+      setAuth(authInstance); // Store auth instance
+
+      const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+        if (user) {
+          // User is signed in
+          setUserId(user.uid);
+          setUserEmail(user.email);
+          setIsAuthReady(true);
+        } else {
+          // User is signed out
+          setUserId(null);
+          setUserEmail(null);
+          setTasks([]); // Clear tasks on logout
+          setIsAuthReady(true); // Auth is ready, but no user
+        }
+      });
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Error initializing Firebase:", error);
+      setAuthError("Could not initialize Firebase. Please refresh.");
     }
   }, []);
 
-  // 2. Load tasks from localStorage *when the user changes*
+  // --- Firestore Data Loading (Tasks) ---
   useEffect(() => {
-    if (currentUser) {
-      const storageKey = getStorageKey(currentUser);
-      try {
-        const storedTasks = localStorage.getItem(storageKey);
-        if (storedTasks) {
-          setTasks(JSON.parse(storedTasks));
-        } else {
-          setTasks([]); // No tasks for this user, set to empty
-        }
-      } catch (error) {
-        console.error("Failed to load tasks from localStorage:", error);
+    // Wait for auth and db, AND a logged-in user
+    if (!isAuthReady || !db || !userId) {
+      // Clear tasks if user logs out but auth is ready
+      if (isAuthReady && !userId) {
         setTasks([]);
       }
+      return; 
     }
-  }, [currentUser]); // This effect re-runs when currentUser changes
 
-  // 3. Save tasks to localStorage *whenever tasks change*
-  useEffect(() => {
-    // Only save if there's a user
-    if (currentUser) {
-      const storageKey = getStorageKey(currentUser);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(tasks));
-      } catch (error) {
-        console.error("Failed to save tasks to localStorage:", error);
-      }
+    // --- Listener for TASKS (Path Updated) ---
+    const tasksCollectionPath = `users/${userId}/tasks`;
+    const tasksCollectionRef = collection(db, tasksCollectionPath);
+    const unsubscribeTasks = onSnapshot(tasksCollectionRef, (snapshot) => {
+      const tasksData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTasks(tasksData);
+    }, (error) => {
+      console.error("Error listening to Tasks snapshot:", error);
+    });
+
+    // Clean up listener
+    return () => {
+      unsubscribeTasks();
+    };
+
+  }, [db, userId, isAuthReady]); // Re-run when user logs in
+
+  // --- Auth Handlers ---
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      // onAuthStateChanged will handle clearing user state
+    } catch (error) {
+      console.error("Error signing out:", error);
     }
-  }, [tasks, currentUser]); // This effect re-runs when tasks or currentUser changes
-
-  // --- Login / Logout Handlers ---
-
-  const handleLogin = (username) => {
-    setCurrentUser(username);
-    localStorage.setItem('homework-hub-currentUser', username);
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setTasks([]); // Clear tasks from state
-    localStorage.removeItem('homework-hub-currentUser');
+  // --- CRUD Functions (Paths Updated) ---
+  const handleAddTask = async (newTask) => {
+    if (!db || !userId) {
+      console.error("Not authenticated.");
+      return;
+    }
+    try {
+      const tasksCollectionPath = `users/${userId}/tasks`;
+      await addDoc(collection(db, tasksCollectionPath), newTask);
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
   };
 
-  // --- CRUD Functions (now just update state) ---
-
-  const handleAddTask = (newTask) => {
-    setTasks((prevTasks) => [...prevTasks, newTask]);
+  const handleToggleComplete = async (taskId, currentStatus) => {
+    if (!db || !userId) return;
+    try {
+      const taskDocRef = doc(db, `users/${userId}/tasks`, taskId);
+      await updateDoc(taskDocRef, {
+        completed: !currentStatus
+      });
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
   };
 
-  const handleToggleComplete = (taskId, currentStatus) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !currentStatus } : task
-      )
-    );
+  const handleDeleteTask = async (taskId) => {
+    if (!db || !userId) return;
+    try {
+      const taskDocRef = doc(db, `users/${userId}/tasks`, taskId);
+      await deleteDoc(taskDocRef);
+    } catch (error) {
+      console.error("Error deleting document: ", error);
+    }
   };
-
-  const handleDeleteTask = (taskId) => {
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-  };
-
-  // --- Edit Task Functions ---
 
   const handleOpenEditModal = (task) => {
     setEditingTask(task);
@@ -928,54 +1051,42 @@ export default function App() {
     setEditingTask(null);
   };
 
-  const handleUpdateTask = (updatedTask) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-    handleCloseEditModal(); // Close the modal after saving
+  const handleUpdateTask = async (updatedTask) => {
+    if (!db || !userId) return;
+    
+    // Remove ID from the data object
+    const { id, ...taskData } = updatedTask;
+
+    try {
+      const taskDocRef = doc(db, `users/${userId}/tasks`, id);
+      await updateDoc(taskDocRef, taskData);
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
+    
+    handleCloseEditModal();
   };
 
-  // --- "Add to Calendar" Handlers ---
-  
-  // Renamed from handleAddToCalendar
+  // --- "Add to Calendar" Handlers (Unchanged) ---
   const handleAddToGoogle = (task) => {
-    // 1. Format the dates.
-    // Google Calendar wants YYYYMMDD format without dashes.
     const startDate = task.dueDate.replace(/-/g, '');
-    
-    // For an all-day event, the "end" date is the *next day*.
     const endDateObj = new Date(task.dueDate);
-    endDateObj.setUTCDate(endDateObj.getUTCDate() + 1); // Use UTC to avoid timezone issues
+    endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
     const endDate = toLocalDateISOString(endDateObj).replace(/-/g, '');
-
-    // 2. Create the URL.
     const baseUrl = 'https://www.google.com/calendar/render?action=TEMPLATE';
     const params = new URLSearchParams();
     params.append('text', task.taskName);
-    params.append('dates', `${startDate}/${endDate}`); // Format: YYYYMMDD/YYYYMMDD
+    params.append('dates', `${startDate}/${endDate}`);
     params.append('details', `Homework for: ${task.subject}`);
-
     const url = `${baseUrl}&${params.toString()}`;
-
-    // 3. Open in a new tab.
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // New handler for Outlook
   const handleAddToOutlook = (task) => {
-    // 1. Format the dates.
-    // Outlook wants ISO 8601 format (YYYY-MM-DDTHH:mm:ss)
-    // We must use UTC for this to work correctly across timezones
     const startDate = `${task.dueDate}T00:00:00`;
-    
-    // For an all-day event, the "end" date is the *next day*.
     const endDateObj = new Date(task.dueDate);
     endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
     const endDate = `${toLocalDateISOString(endDateObj)}T00:00:00`;
-
-    // 2. Create the URL.
     const baseUrl = 'https://outlook.live.com/calendar/0/deeplink/compose';
     const params = new URLSearchParams();
     params.append('subject', task.taskName);
@@ -983,16 +1094,13 @@ export default function App() {
     params.append('startdt', startDate);
     params.append('enddt', endDate);
     params.append('allday', 'true');
-
     const url = `${baseUrl}?${params.toString()}`;
-
-    // 3. Open in a new tab.
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // --- Filter/Print Handlers ---
+  // --- Filter/Print Handlers (Unchanged) ---
   const handlePrint = () => {
-    window.print(); // The browser will use the print: styles
+    window.print();
   };
 
   const handleClearFilter = () => {
@@ -1000,28 +1108,44 @@ export default function App() {
   };
 
   const handleSetUpcomingFilter = (filter) => {
-    // This function is passed to the dashboard
-    // It will set the filter and also switch the view to 'upcoming'
     setView('upcoming');
     setUpcomingFilter(filter);
   };
 
-
   // --- Render Logic ---
 
-  if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} />;
+  // 1. Show loading indicator
+  if (!isAuthReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none text-center">
+          <Book className="w-16 h-16 mx-auto text-blue-600 animate-pulse" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-4">Homework Hub</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2 mb-6">Connecting to service...</p>
+        </div>
+      </div>
+    );
   }
 
+  // 2. Show Login screen
+  if (!userId) {
+    return (
+      <LoginScreen 
+        auth={auth} 
+        authError={authError} 
+        setAuthError={setAuthError} 
+      />
+    );
+  }
+
+  // 3. Show main app content
   const renderContent = () => {
     if (view === 'calendar') {
       return <CalendarView tasks={tasks} onToggleComplete={handleToggleComplete} />;
     }
     
-    // For 'upcoming' or 'all' views
     return (
       <>
-        {/* Only show Dashboard on 'upcoming' view */}
         {view === 'upcoming' && (
           <Dashboard 
             tasks={tasks}
@@ -1043,19 +1167,17 @@ export default function App() {
   };
 
   return (
-    // The <html> tag will get the 'dark' class, so this outer div
-    // will correctly get the dark mode background color.
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 md:p-8 font-inter print:bg-white">
       <div className="max-w-6xl mx-auto">
         <Header 
-          currentUser={currentUser} 
+          userEmail={userEmail}
           view={view} 
           setView={setView} 
           onLogout={handleLogout}
           onPrint={handlePrint}
           onClearFilter={handleClearFilter}
-          theme={theme} // Pass theme
-          setTheme={setTheme} // Pass setter
+          theme={theme}
+          setTheme={setTheme}
         />
         
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">

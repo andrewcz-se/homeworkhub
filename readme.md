@@ -15,6 +15,7 @@ This project has been upgraded from a simple localStorage app to a cloud-based a
 * **Interactive Dashboard:** "At a Glance" cards show you tasks due "Today" and "This Week." Clicking a card filters the upcoming list.  
 * **Print Support:** A "Print" button for the Calendar and Upcoming views, formatted to be clean and ink-friendly.
 * **Calendar Support:** Add homework tasks to your Google or Outlook calendar from the Upcoming and All Tasks views.
+* **iCal Support:** Add homework tasks to the application by sycning events from your Toddle Calendar.
 
 ## **Getting Started (Running Locally)**
 

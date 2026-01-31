@@ -34,34 +34,76 @@ export default async function handler(req, res) {
         // 1. Ensure it is an event
         if (event.type !== 'VEVENT') return false;
 
-        // 2. Date Filter: Only allow events starting today or in the future
-        if (event.start) {
-            const eventDate = new Date(event.start);
-            // Keep if the event is after or equal to today (00:00)
-            return eventDate >= today;
+        // 2. Date Filter: Only allow events that end today or in the future
+        // Use End date if available, otherwise Start date
+        const endDate = event.end ? new Date(event.end) : (event.start ? new Date(event.start) : null);
+        
+        if (endDate) {
+             return endDate >= today;
         }
-        return false; // Skip events with no start date
+        return false; // Skip events with no date
       })
-      .map(event => {
-        // --- DEBUGGING LOG TO FIND WHERE TODDLE DATA IS---
-        //console.log(`\n--- Processing Event: ${event.summary} ---`);
-        //console.log("Description:", event.description);
-        //console.log("Location:", event.location);
-        //console.log("Categories:", event.categories);
-        //console.log("Full Raw Object Keys:", Object.keys(event));
-        // ---------------------
+      .flatMap(event => {
+        if (!event.start) return [];
 
-        const startDate = event.start ? new Date(event.start) : new Date();
-        const dateString = startDate.toISOString().split('T')[0];
+        const start = new Date(event.start);
+        const end = event.end ? new Date(event.end) : new Date(start);
+        
+        // Handle case where end < start (invalid data protection)
+        if (end < start) {
+            end.setTime(start.getTime()); 
+        }
 
-        return {
-          taskName: event.summary || 'Untitled Task',
-          dueDate: dateString,
-          description: event.description || '',
-          location: event.location || '',
-          categories: event.categories || [], 
-          uid: event.uid,
-        };
+        const eventsList = [];
+        
+        // Create a cursor starting at the beginning of the start day (UTC to match ISO string logic)
+        // We iterate by day.
+        let cursor = new Date(start);
+        cursor.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
+
+        // Safety break
+        let loopCount = 0;
+        
+        // Loop while cursor is before the end date
+        // If end is exactly midnight (e.g. Feb 4 00:00), cursor (Feb 4 00:00) is NOT < end. Loop stops. Feb 4 not included. Correct.
+        // If end is Feb 4 10:00, cursor (Feb 4 00:00) IS < end. Loop continues. Feb 4 included. Correct.
+        while (cursor < end && loopCount < 365) {
+            
+            const dateString = cursor.toISOString().split('T')[0];
+            
+            eventsList.push({
+              taskName: event.summary || 'Untitled Task',
+              dueDate: dateString,
+              description: event.description || '',
+              location: event.location || '',
+              categories: event.categories || [], 
+              uid: event.uid,
+            });
+
+            // Advance cursor by 1 day
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+            loopCount++;
+        }
+        
+        // Fallback for 0-duration events or if loop didn't run
+        if (eventsList.length === 0) {
+             const dateString = start.toISOString().split('T')[0];
+             eventsList.push({
+              taskName: event.summary || 'Untitled Task',
+              dueDate: dateString,
+              description: event.description || '',
+              location: event.location || '',
+              categories: event.categories || [], 
+              uid: event.uid,
+            });
+        }
+
+        return eventsList;
+      })
+      .filter(task => {
+          // Compare task.dueDate with today's date string (UTC comparison)
+          const todayString = today.toISOString().split('T')[0];
+          return task.dueDate >= todayString;
       });
 
     console.log(`--- Parsed ${events.length} events (Filtered for Future) ---`);

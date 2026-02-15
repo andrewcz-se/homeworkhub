@@ -7,6 +7,5 @@ html.dark, body.dark {
   background-color: #111827 !important; /* Tailwind gray-900 */
   background-image: none !important;
   isolation: isolate; /* Forces new stacking context */
-  transform: translateZ(0); /* Force repaint via GPU */
   will-change: background;
 }

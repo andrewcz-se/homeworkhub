@@ -26,7 +26,8 @@ import {
   Mail, 
   RefreshCw, 
   Link as LinkIcon, 
-  Settings
+  Settings,
+  HelpCircle
 } from 'lucide-react';
 
 // Import Firebase
@@ -164,7 +165,7 @@ const getTodayISO = () => {
 /**
  * TaskItem Component
  */
-const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook }) => {
+const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook, onClickTask }) => {
   const isOverdue = !task.completed && new Date(task.dueDate) < new Date(getTodayISO());
   const isSynced = task.source === 'toddle';
 
@@ -174,7 +175,7 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGo
         task.completed ? 'opacity-60' : ''
       }`}
     >
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
         <button
           onClick={() => onToggleComplete(task.id, task.completed)}
           className="flex-shrink-0"
@@ -187,28 +188,31 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGo
           )}
         </button>
         
-        <div className="flex-1">
+        <div 
+          className="flex-1 min-w-0 cursor-pointer" 
+          onClick={() => onClickTask(task)}
+        >
           <div className="flex items-center gap-2">
             <p
-              className={`font-medium text-gray-900 dark:text-gray-100 ${
+              className={`font-medium text-gray-900 dark:text-gray-100 truncate ${
                 task.completed ? 'line-through' : ''
               }`}
             >
               {task.taskName}
             </p>
             {isSynced && (
-               <span title="Synced from Toddle" className="text-blue-500">
+               <span title="Synced from Toddle" className="text-blue-500 flex-shrink-0">
                  <RefreshCw className="w-3 h-3" />
                </span>
             )}
           </div>
           
           <div className="flex items-center space-x-2 text-sm mt-1">
-            <span className={`px-2 py-0.5 rounded-full font-medium ${SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['Other']}`}>
+            <span className={`px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['Other']}`}>
               {task.subject}
             </span>
             <span
-              className={`font-medium ${
+              className={`font-medium truncate ${
                 isOverdue
                   ? 'text-red-500'
                   : 'text-gray-500 dark:text-gray-400'
@@ -278,11 +282,11 @@ const SyncSettingsModal = ({ isOpen, onClose, icalUrl, setIcalUrl, onSaveUrl, is
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none"
+        className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -359,6 +363,7 @@ const HomeworkForm = ({ onAddTask }) => {
   const [taskName, setTaskName] = useState('');
   const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
   const [dueDate, setDueDate] = useState(getTodayISO());
+  const [description, setDescription] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -371,6 +376,7 @@ const HomeworkForm = ({ onAddTask }) => {
       taskName: taskName.trim(),
       subject: subject.trim(),
       dueDate,
+      description: description.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
       source: 'manual' // Mark as manually added
@@ -379,6 +385,7 @@ const HomeworkForm = ({ onAddTask }) => {
     setTaskName('');
     setSubject(SUBJECT_OPTIONS[0]);
     setDueDate(getTodayISO());
+    setDescription('');
   };
 
   return (
@@ -399,6 +406,19 @@ const HomeworkForm = ({ onAddTask }) => {
           className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
           placeholder="e.g., Chapter 5 Problems"
           required
+        />
+      </div>
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Description
+        </label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-gray-100"
+          placeholder="Additional details..."
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -449,7 +469,7 @@ const HomeworkForm = ({ onAddTask }) => {
 /**
  * TaskLists Component
  */
-const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook, upcomingFilter }) => {
+const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, onAddToGoogle, onAddToOutlook, onClickTask, upcomingFilter }) => {
   
   const todayISO = getTodayISO();
   const sevenDaysFromNow = new Date();
@@ -504,6 +524,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
               onOpenEditModal={onOpenEditModal}
               onAddToGoogle={onAddToGoogle}
               onAddToOutlook={onAddToOutlook}
+              onClickTask={onClickTask}
             />
           ))}
         </div>
@@ -515,7 +536,7 @@ const TaskLists = ({ tasks, view, onToggleComplete, onDelete, onOpenEditModal, o
 /**
  * CalendarView Component
  */
-const CalendarView = ({ tasks, onToggleComplete }) => {
+const CalendarView = ({ tasks, onToggleComplete, onClickTask, onDayDoubleClick }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const tasksByDate = useMemo(() => {
@@ -557,7 +578,8 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
       days.push(
         <div
           key={dateStr}
-          className="relative p-2 border-r border-b border-gray-200 dark:border-gray-700 min-h-[120px] h-full flex flex-col print:border-gray-400"
+          className="relative p-2 border-r border-b border-gray-200 dark:border-gray-700 min-h-[120px] h-full flex flex-col print:border-gray-400 cursor-default"
+          onDoubleClick={() => onDayDoubleClick(dateStr)}
         >
           <span
             className={`flex items-center justify-center h-8 w-8 text-sm font-medium rounded-full ${
@@ -586,7 +608,10 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
                   >
                     {task.completed ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
                   </button>
-                  <span className={`font-medium ${task.completed ? 'line-through' : ''}`}>
+                  <span 
+                    className={`font-medium cursor-pointer break-words ${task.completed ? 'line-through' : ''}`}
+                    onClick={() => onClickTask(task)}
+                  >
                     {task.taskName}
                     {task.source === 'toddle' && <span className="ml-1 opacity-60">↺</span>}
                   </span>
@@ -643,7 +668,7 @@ const CalendarView = ({ tasks, onToggleComplete }) => {
 /**
  * Header Component
  */
-const Header = ({ userEmail, view, setView, onLogout, onPrint, onClearFilter, theme, setTheme, onOpenSync }) => {
+const Header = ({ userEmail, view, setView, onLogout, onPrint, onClearFilter, theme, setTheme, onOpenSync, onOpenHelp }) => {
   
   const handleSetView = (targetView) => {
     setView(targetView);
@@ -708,6 +733,14 @@ const Header = ({ userEmail, view, setView, onLogout, onPrint, onClearFilter, th
             title="Sync Settings"
           >
             <Settings className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={onOpenHelp}
+            className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-300 hover:bg-gray-700 hover:text-white"
+            title="How to use"
+          >
+            <HelpCircle className="w-5 h-5" />
           </button>
 
         </nav>
@@ -802,31 +835,37 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
   const [taskName, setTaskName] = useState('');
   const [subject, setSubject] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (task) {
       setTaskName(task.taskName);
       setSubject(task.subject);
       setDueDate(task.dueDate);
+      setDescription(task.description || '');
     }
   }, [task]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ ...task, taskName: taskName.trim(), subject: subject.trim(), dueDate });
+    onSave({ ...task, taskName: taskName.trim(), subject: subject.trim(), dueDate, description: description.trim() });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden" onClick={onClose}>
-      <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+      <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-6 h-6" /></button>
         <form onSubmit={handleSubmit} className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit Homework</h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Task Name</label>
             <input type="text" value={taskName} onChange={(e) => setTaskName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -843,6 +882,223 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
           <div className="flex justify-end space-x-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700">Cancel</button>
             <button type="submit" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TaskDetailModal = ({ task, isOpen, onClose }) => {
+  if (!isOpen || !task) return null;
+
+  const formatDescription = (text) => {
+    if (!text) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+)/;
+
+    return text.split(/\n/).map((line, i) => (
+      <React.Fragment key={i}>
+        {line.split(urlRegex).map((part, index) =>
+          part.match(urlRegex) ? (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              {part}
+            </a>
+          ) : (
+            part
+          )
+        )}
+        <br />
+      </React.Fragment>
+    ));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+      <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          aria-label="Close modal"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="space-y-4">
+          <div>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['Other']}`}>
+              {task.subject}
+            </span>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">{task.taskName}</h2>
+          </div>
+
+          <div className="flex items-center text-gray-600 dark:text-gray-400 space-x-2">
+            <Clock className="w-5 h-5" />
+            <span className="font-medium">
+              Due: {new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC', dateStyle: 'long' })}
+            </span>
+          </div>
+
+          {task.description && (
+            <div className="pt-2">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description</h3>
+              <div className="text-gray-600 dark:text-gray-400 text-sm bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">
+                {formatDescription(task.description)}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HelpModal = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden" onClick={onClose}>
+      <div className="relative w-full max-w-2xl p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Close modal">
+          <X className="w-6 h-6" />
+        </button>
+        
+        <div className="space-y-6">
+          <div className="flex items-center space-x-2 border-b border-gray-200 dark:border-gray-700 pb-2">
+            <HelpCircle className="w-6 h-6 text-blue-600" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">How to use Homework Hub</h2>
+          </div>
+
+          <section>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-blue-500" /> Adding Tasks
+            </h3>
+            <ul className="list-disc list-inside mt-2 text-gray-600 dark:text-gray-300 space-y-1 ml-4">
+              <li><strong>Manual Form:</strong> Use the "Add New Homework" form on the dashboard to enter Task Name, Description, Subject, and Due Date.</li>
+              <li><strong>Calendar Shortcut:</strong> Double-click any day on the Calendar view to quickly add a task for that specific date.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-blue-500" /> Managing Tasks
+            </h3>
+            <ul className="list-disc list-inside mt-2 text-gray-600 dark:text-gray-300 space-y-1 ml-4">
+              <li><strong>View Details:</strong> Click on any task name to see its full details, including the description.</li>
+              <li><strong>Complete:</strong> Click the circle icon to mark a task as finished.</li>
+              <li><strong>Edit/Delete:</strong> For manually added tasks, use the pencil icon to edit or the trash icon to delete.</li>
+              <li><strong>External Calendars:</strong> Use the calendar plus icons to add tasks to your Google or Outlook calendar.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-blue-500" /> Calendar Sync
+            </h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-300 ml-4">
+              Click the <Settings className="w-4 h-4 inline" /> icon in the toolbar to set up iCal sync. 
+              Paste your iCal URL to automatically import assignments. Synced tasks are marked with a <RefreshCw className="w-3 h-3 inline" /> icon and are read-only.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <List className="w-5 h-5 text-blue-500" /> Navigation & Views
+            </h3>
+            <ul className="list-disc list-inside mt-2 text-gray-600 dark:text-gray-300 space-y-1 ml-4">
+              <li><strong>Calendar:</strong> A monthly overview of all your tasks.</li>
+              <li><strong>Upcoming:</strong> Shows incomplete tasks with quick filters for Overdue, Today, and This Week.</li>
+              <li><strong>All Tasks:</strong> A complete list of all your homework entries.</li>
+              <li><strong>Print:</strong> Use the <Printer className="w-4 h-4 inline" /> icon to print your current view.</li>
+            </ul>
+          </section>
+        </div>
+
+        <div className="mt-8 flex justify-end">
+          <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Got it!</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AddTaskModal = ({ isOpen, onClose, onAddTask, initialDate }) => {
+  const [taskName, setTaskName] = useState('');
+  const [subject, setSubject] = useState(SUBJECT_OPTIONS[0]);
+  const [dueDate, setDueDate] = useState(initialDate || getTodayISO());
+  const [description, setDescription] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setTaskName('');
+      setSubject(SUBJECT_OPTIONS[0]);
+      setDueDate(initialDate || getTodayISO());
+      setDescription('');
+    }
+  }, [isOpen, initialDate]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!taskName.trim() || !subject.trim() || !dueDate) return;
+
+    onAddTask({
+      taskName: taskName.trim(),
+      subject: subject.trim(),
+      dueDate,
+      description: description.trim(),
+      completed: false,
+      createdAt: new Date().toISOString(),
+      source: 'manual'
+    });
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+      <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-6 h-6" /></button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Add New Homework</h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Task Name</label>
+            <input type="text" value={taskName} onChange={(e) => setTaskName(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" placeholder="e.g., Chapter 5 Problems" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" placeholder="Additional details..." />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Subject</label>
+              <select value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" required>
+                {SUBJECT_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Due Date</label>
+              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm dark:bg-gray-700 dark:text-gray-100" required />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-3 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700">Cancel</button>
+            <button type="submit" className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">Add Task</button>
           </div>
         </form>
       </div>
@@ -898,6 +1154,11 @@ export default function App() {
   const [view, setView] = useState('calendar');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalDate, setAddModalDate] = useState(null);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [upcomingFilter, setUpcomingFilter] = useState('all');
   const [theme, setTheme] = useTheme();
 
@@ -1073,6 +1334,7 @@ export default function App() {
             taskName: event.taskName,
             subject: subject,
             dueDate: event.dueDate,
+            description: event.description || '',
             completed: false,
             createdAt: new Date().toISOString(),
             source: 'toddle', // Mark as synced
@@ -1100,6 +1362,16 @@ export default function App() {
   const handleOpenEditModal = (task) => {
     setEditingTask(task);
     setIsEditModalOpen(true);
+  };
+
+  const handleOpenDetailModal = (task) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDayDoubleClick = (date) => {
+    setAddModalDate(date);
+    setIsAddModalOpen(true);
   };
 
   const handleAddToGoogle = (task) => {
@@ -1147,6 +1419,7 @@ export default function App() {
           theme={theme}
           setTheme={setTheme}
           onOpenSync={() => setIsSyncModalOpen(true)}
+          onOpenHelp={() => setIsHelpModalOpen(true)}
         />
         
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1155,7 +1428,7 @@ export default function App() {
           </div>
           <div className="lg:col-span-2 print:col-span-3">
             {view === 'calendar' ? (
-              <CalendarView tasks={tasks} onToggleComplete={handleToggleComplete} />
+              <CalendarView tasks={tasks} onToggleComplete={handleToggleComplete} onClickTask={handleOpenDetailModal} onDayDoubleClick={handleDayDoubleClick} />
             ) : (
               <>
                 {view === 'upcoming' && <Dashboard tasks={tasks} setUpcomingFilter={(filter) => { setView('upcoming'); setUpcomingFilter(filter); }} />}
@@ -1167,6 +1440,7 @@ export default function App() {
                   onOpenEditModal={handleOpenEditModal}
                   onAddToGoogle={handleAddToGoogle}
                   onAddToOutlook={handleAddToOutlook}
+                  onClickTask={handleOpenDetailModal}
                   upcomingFilter={upcomingFilter}
                 />
               </>
@@ -1181,6 +1455,19 @@ export default function App() {
           onSave={handleUpdateTask}
         />
 
+        <AddTaskModal
+          isOpen={isAddModalOpen}
+          initialDate={addModalDate}
+          onClose={() => { setIsAddModalOpen(false); setAddModalDate(null); }}
+          onAddTask={handleAddTask}
+        />
+
+        <TaskDetailModal
+          isOpen={isDetailModalOpen}
+          task={selectedTask}
+          onClose={() => { setIsDetailModalOpen(false); setSelectedTask(null); }}
+        />
+
         <SyncSettingsModal 
           isOpen={isSyncModalOpen}
           onClose={() => setIsSyncModalOpen(false)}
@@ -1189,6 +1476,11 @@ export default function App() {
           onSaveUrl={handleSaveSyncUrl}
           isSyncing={isSyncing}
           lastSyncTime={lastSyncTime}
+        />
+
+        <HelpModal
+          isOpen={isHelpModalOpen}
+          onClose={() => setIsHelpModalOpen(false)}
         />
       </div>
     </div>

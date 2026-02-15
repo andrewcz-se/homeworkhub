@@ -25,6 +25,14 @@ export default async function handler(req, res) {
     console.log("--- Fetching iCal from:", url);
     const data = await ical.async.fromURL(url);
     
+    // Helper to format date as YYYY-MM-DD in LOCAL time to match frontend expectations
+    const formatDate = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    };
+
     // Define "Today" (Start of day to ensure today's tasks are included)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -56,10 +64,9 @@ export default async function handler(req, res) {
 
         const eventsList = [];
         
-        // Create a cursor starting at the beginning of the start day (UTC to match ISO string logic)
-        // We iterate by day.
-        let cursor = new Date(start);
-        cursor.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
+        // Create a cursor starting at the beginning of the start day.
+        // We use local date components to avoid day-shifting during UTC conversion (common with all-day events).
+        let cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
         // Safety break
         let loopCount = 0;
@@ -69,7 +76,7 @@ export default async function handler(req, res) {
         // If end is Feb 4 10:00, cursor (Feb 4 00:00) IS < end. Loop continues. Feb 4 included. Correct.
         while (cursor < end && loopCount < 365) {
             
-            const dateString = cursor.toISOString().split('T')[0];
+            const dateString = formatDate(cursor);
             
             eventsList.push({
               taskName: event.summary || 'Untitled Task',
@@ -81,13 +88,13 @@ export default async function handler(req, res) {
             });
 
             // Advance cursor by 1 day
-            cursor.setUTCDate(cursor.getUTCDate() + 1);
+            cursor.setDate(cursor.getDate() + 1);
             loopCount++;
         }
         
         // Fallback for 0-duration events or if loop didn't run
         if (eventsList.length === 0) {
-             const dateString = start.toISOString().split('T')[0];
+             const dateString = formatDate(start);
              eventsList.push({
               taskName: event.summary || 'Untitled Task',
               dueDate: dateString,
@@ -101,8 +108,8 @@ export default async function handler(req, res) {
         return eventsList;
       })
       .filter(task => {
-          // Compare task.dueDate with today's date string (UTC comparison)
-          const todayString = today.toISOString().split('T')[0];
+          // Compare task.dueDate with today's date string (local comparison)
+          const todayString = formatDate(today);
           return task.dueDate >= todayString;
       });
 

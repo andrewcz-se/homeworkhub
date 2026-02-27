@@ -282,7 +282,7 @@ const SyncSettingsModal = ({ isOpen, onClose, icalUrl, setIcalUrl, onSaveUrl, is
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden p-4"
       onClick={onClose}
     >
       <div 
@@ -802,7 +802,7 @@ const LoginScreen = ({ auth, authError, setAuthError }) => {
           {isSignUp ? 'Create an account.' : 'Log in to see your tasks.'}
         </p>
         <div className="mt-4 text-center text-xs text-gray-400">
-          Privacy Notice: This application is a personal project not designed for production use. We respect your privacy and aim to minimise data collection at all times. This application does not use cookies, analytics, tracking, advertising, or marketing technologies. The app allows account creation using Firebase (your email address is used only to create and manage your account via Firebase authentication). Non-personal app settings may be stored locally in your browser. Assets may be delivered via third-party CDNs (e.g. Tailwind).
+          Privacy Notice: This application is a personal project not designed for production use. We respect your privacy and aim to minimise data collection at all times. This application does not use cookies, analytics, tracking, advertising, or marketing technologies. The app allows account creation using Firebase (your email address is used only to create and manage your account via Firebase authentication). Your task data is stored in a Firestore database. Non-personal app settings may be stored locally in your browser.
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -854,7 +854,7 @@ const EditTaskModal = ({ task, isOpen, onClose, onSave }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden p-4" onClick={onClose}>
       <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-6 h-6" /></button>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -920,7 +920,7 @@ const TaskDetailModal = ({ task, isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden p-4" onClick={onClose}>
       <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
@@ -972,7 +972,7 @@ const HelpModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden" onClick={onClose}>
       <div className="relative w-full max-w-2xl p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-none overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" aria-label="Close modal">
           <X className="w-6 h-6" />
@@ -1071,7 +1071,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask, initialDate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 print:hidden p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden p-4" onClick={onClose}>
       <div className="relative w-full max-w-lg p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-6 h-6" /></button>
         <form onSubmit={handleSubmit} className="space-y-4">

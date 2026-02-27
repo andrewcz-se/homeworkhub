@@ -1,3 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --font-inter: "Inter", "sans-serif";
+}
+
+@variant dark (.dark &);
+
 body {
   font-family: 'Inter', sans-serif;
 }

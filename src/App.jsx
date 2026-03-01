@@ -178,7 +178,7 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGo
       <div className="flex items-center space-x-3 flex-1 min-w-0">
         <button
           onClick={() => onToggleComplete(task.id, task.completed)}
-          className="flex-shrink-0"
+          className="shrink-0"
           aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
         >
           {task.completed ? (
@@ -201,14 +201,14 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onOpenEditModal, onAddToGo
               {task.taskName}
             </p>
             {isSynced && (
-               <span title="Synced from Toddle" className="text-blue-500 flex-shrink-0">
+               <span title="Synced from Toddle" className="text-blue-500 shrink-0">
                  <RefreshCw className="w-3 h-3" />
                </span>
             )}
           </div>
           
           <div className="flex items-center space-x-2 text-sm mt-1">
-            <span className={`px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['Other']}`}>
+            <span className={`px-2 py-0.5 rounded-full font-medium shrink-0 ${SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['Other']}`}>
               {task.subject}
             </span>
             <span
@@ -578,7 +578,7 @@ const CalendarView = ({ tasks, onToggleComplete, onClickTask, onDayDoubleClick }
       days.push(
         <div
           key={dateStr}
-          className="relative p-2 border-r border-b border-gray-200 dark:border-gray-700 min-h-[120px] h-full flex flex-col print:border-gray-400 cursor-default"
+          className="relative p-2 border-r border-b border-gray-200 dark:border-gray-700 min-h-30 h-full flex flex-col print:border-gray-400 cursor-default"
           onDoubleClick={() => onDayDoubleClick(dateStr)}
         >
           <span
@@ -603,13 +603,13 @@ const CalendarView = ({ tasks, onToggleComplete, onClickTask, onDayDoubleClick }
                 >
                   <button 
                     onClick={() => onToggleComplete(task.id, task.completed)}
-                    className="flex-shrink-0 pt-0.5"
+                    className="shrink-0 pt-0.5"
                     aria-label={task.completed ? 'Mark as incomplete' : 'Mark as complete'}
                   >
                     {task.completed ? <CheckCircle className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
                   </button>
                   <span 
-                    className={`font-medium cursor-pointer break-words ${task.completed ? 'line-through' : ''}`}
+                    className={`font-medium cursor-pointer wrap-break-word ${task.completed ? 'line-through' : ''}`}
                     onClick={() => onClickTask(task)}
                   >
                     {task.taskName}
@@ -821,10 +821,10 @@ const LoginScreen = ({ auth, authError, setAuthError }) => {
           <button type="submit" className="w-full px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700">
             {isSignUp ? 'Sign Up' : 'Log In'}
           </button>
-        </form>
-        <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(null); }} className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
+        </form> 
+         {/* <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(null); }} className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
           {isSignUp ? 'Have an account? Log In' : "Don't have an account? Sign Up"}
-        </button>
+        </button> */}
       </div>
     </div>
     
@@ -1123,15 +1123,15 @@ const Dashboard = ({ tasks, setUpcomingFilter }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 print:hidden">
       <button onClick={() => setUpcomingFilter('overdue')} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3 text-left w-full">
-        <div className="flex-shrink-0 bg-red-100 dark:bg-red-900 p-3 rounded-full"><AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-200" /></div>
+        <div className="shrink-0 bg-red-100 dark:bg-red-900 p-3 rounded-full"><AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-200" /></div>
         <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Overdue</p><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tasksOverdue}</p></div>
       </button>
       <button onClick={() => setUpcomingFilter('today')} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3 text-left w-full">
-        <div className="flex-shrink-0 bg-yellow-100 dark:bg-yellow-900 p-3 rounded-full"><Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-200" /></div>
+        <div className="shrink-0 bg-yellow-100 dark:bg-yellow-900 p-3 rounded-full"><Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-200" /></div>
         <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Due Today</p><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tasksDueToday}</p></div>
       </button>
       <button onClick={() => setUpcomingFilter('week')} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center space-x-3 text-left w-full">
-        <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-900 p-3 rounded-full"><CalendarDays className="w-6 h-6 text-blue-600 dark:text-blue-200" /></div>
+        <div className="shrink-0 bg-blue-100 dark:bg-blue-900 p-3 rounded-full"><CalendarDays className="w-6 h-6 text-blue-600 dark:text-blue-200" /></div>
         <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Due This Week</p><p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tasksDueThisWeek}</p></div>
       </button>
     </div>
